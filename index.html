@@ -80,7 +80,7 @@
             margin-bottom: 10px;
             cursor: grab;
             transition: all 0.3s ease;
-            font-size: 1rem;
+            font-size: 1.2rem;
             color: #003A70;
             user-select: none;
         }
@@ -94,6 +94,14 @@
         .sentence-card.dragging {
             opacity: 0.5;
             cursor: grabbing;
+        }
+
+        .sentence-card.selected {
+            background-color: #5A8FD8;
+            color: white;
+            border-color: #003A70;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 58, 112, 0.3);
         }
 
         .boxes-container {
@@ -116,6 +124,17 @@
             background-color: #A7C6ED;
         }
 
+        .drop-box.clickable {
+            cursor: pointer;
+            border-color: #5A8FD8;
+            background-color: #E8F2FF;
+        }
+
+        .drop-box.clickable:hover {
+            border-color: #003A70;
+            background-color: #A7C6ED;
+        }
+
         .box-header {
             font-size: 2rem;
             color: #003A70;
@@ -130,7 +149,7 @@
             border-radius: 8px;
             padding: 10px;
             margin-bottom: 8px;
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             color: #003A70;
         }
 
@@ -143,6 +162,9 @@
 
         .incorrect {
             animation: shake 0.5s ease-in-out;
+            background-color: #ffebee !important;
+            border-color: #f44336 !important;
+            color: #d32f2f !important;
         }
 
         @keyframes correctPulse {
@@ -216,6 +238,7 @@
         <div class="header">
             <h1 class="title">Sortéier d'Sätz: aus / an / zu</h1>
             <p class="subtitle">Setz all Saz an déi richteg Këscht!</p>
+            <p style="color: #5A8FD8; font-size: 1rem; margin-top: 10px;">Drag & Drop oder klick op e Saz an dann op eng Këscht</p>
         </div>
 
         <div class="progress">
@@ -255,33 +278,34 @@
     <script>
         const sentences = [
             { text: "Ech kommen _____ Frankräich.", correct: "aus" },
-            { text: "Ech kommen _____ Däitschland.", correct: "aus" },
-            { text: "Ech kommen _____ der Belsch.", correct: "aus" },
-            { text: "Ech kommen _____ Portugal.", correct: "aus" },
-            { text: "Ech kommen _____ Spuenien.", correct: "aus" },
-            { text: "Ech kommen _____ Italien.", correct: "aus" },
-            { text: "Ech kommen _____ Lëtzebuerg.", correct: "aus" },
-            { text: "Ech kommen _____ Éisträich.", correct: "aus" },
-            { text: "Ech wunnen _____ Frankräich.", correct: "an" },
-            { text: "Ech wunnen _____ Indien.", correct: "an" },
-            { text: "Ech wunnen _____ Sri Lanka.", correct: "an" },
-            { text: "Ech wunnen _____ Däitschland.", correct: "an" },
-            { text: "Ech wunnen _____ Éisträich.", correct: "an" },
-            { text: "Ech wunnen _____ Holland.", correct: "an" },
-            { text: "Ech wunnen _____ der Schwäiz.", correct: "an" },
-            { text: "Ech wunnen _____ Lëtzebuerg.", correct: "zu" },
             { text: "Ech wunnen _____ Esch.", correct: "zu" },
+            { text: "Ech wunnen _____ Indien.", correct: "an" },
+            { text: "Ech kommen _____ Portugal.", correct: "aus" },
             { text: "Ech wunnen _____ Diddeleng.", correct: "zu" },
+            { text: "Ech wunnen _____ Däitschland.", correct: "an" },
+            { text: "Ech kommen _____ der Belsch.", correct: "aus" },
             { text: "Ech wunnen _____ Mamer.", correct: "zu" },
+            { text: "Ech wunnen _____ Sri Lanka.", correct: "an" },
+            { text: "Ech kommen _____ Italien.", correct: "aus" },
             { text: "Ech wunnen _____ Beetebuerg.", correct: "zu" },
+            { text: "Ech wunnen _____ Éisträich.", correct: "an" },
+            { text: "Ech kommen _____ Spuenien.", correct: "aus" },
             { text: "Ech wunnen _____ Iechternach.", correct: "zu" },
+            { text: "Ech wunnen _____ Holland.", correct: "an" },
+            { text: "Ech kommen _____ Däitschland.", correct: "aus" },
             { text: "Ech wunnen _____ Woolz.", correct: "zu" },
+            { text: "Ech wunnen _____ der Schwäiz.", correct: "an" },
+            { text: "Ech kommen _____ Lëtzebuerg.", correct: "aus" },
             { text: "Ech wunnen _____ Käerjeng.", correct: "zu" },
-            { text: "Ech wunnen _____ Clierf.", correct: "zu" }
+            { text: "Ech wunnen _____ Frankräich.", correct: "an" },
+            { text: "Ech kommen _____ Éisträich.", correct: "aus" },
+            { text: "Ech wunnen _____ Clierf.", correct: "zu" },
+            { text: "Ech wunnen _____ Lëtzebuerg.", correct: "zu" }
         ];
 
         let correctCount = 0;
         let draggedElement = null;
+        let selectedElement = null;
 
         function shuffleArray(array) {
             const shuffled = [...array];
@@ -310,6 +334,7 @@
 
                 sentenceCard.addEventListener('dragstart', handleDragStart);
                 sentenceCard.addEventListener('dragend', handleDragEnd);
+                sentenceCard.addEventListener('click', handleSentenceClick);
 
                 sentencesList.appendChild(sentenceCard);
             });
@@ -319,6 +344,10 @@
             document.getElementById('an-box').innerHTML = '';
             document.getElementById('zu-box').innerHTML = '';
             document.getElementById('game-complete').style.display = 'none';
+            
+            // Clear selection
+            selectedElement = null;
+            updateDropBoxStates();
         }
 
         function handleDragStart(e) {
@@ -328,6 +357,73 @@
 
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+        }
+
+        function handleSentenceClick(e) {
+            // Clear previous selection
+            if (selectedElement) {
+                selectedElement.classList.remove('selected');
+            }
+            
+            // Select new element
+            selectedElement = e.target;
+            selectedElement.classList.add('selected');
+            
+            // Update drop box states
+            updateDropBoxStates();
+        }
+
+        function updateDropBoxStates() {
+            const dropBoxes = document.querySelectorAll('.drop-box');
+            dropBoxes.forEach(box => {
+                if (selectedElement) {
+                    box.classList.add('clickable');
+                } else {
+                    box.classList.remove('clickable');
+                }
+            });
+        }
+
+        function handleBoxClick(e) {
+            if (!selectedElement) return;
+            
+            const dropBox = e.currentTarget;
+            const preposition = dropBox.dataset.preposition;
+            const correctPreposition = selectedElement.dataset.correct;
+
+            if (preposition === correctPreposition) {
+                // Correct placement
+                const droppedSentence = document.createElement('div');
+                droppedSentence.className = 'dropped-sentence correct';
+                droppedSentence.textContent = selectedElement.textContent;
+                
+                const targetBox = document.getElementById(preposition + '-box');
+                targetBox.appendChild(droppedSentence);
+                
+                selectedElement.remove();
+                selectedElement = null;
+                correctCount++;
+                updateProgress();
+                updateDropBoxStates();
+
+                // Remove correct class after animation
+                setTimeout(() => {
+                    droppedSentence.classList.remove('correct');
+                }, 1000);
+
+                // Check if game is complete
+                if (correctCount === sentences.length) {
+                    setTimeout(() => {
+                        document.getElementById('game-complete').style.display = 'block';
+                    }, 1200);
+                }
+            } else {
+                // Incorrect placement - shake the selected element
+                selectedElement.classList.add('incorrect');
+                setTimeout(() => {
+                    selectedElement.classList.remove('incorrect');
+                }, 500);
+            }
         }
 
         function handleDragOver(e) {
@@ -398,11 +494,11 @@
             box.addEventListener('dragover', handleDragOver);
             box.addEventListener('dragleave', handleDragLeave);
             box.addEventListener('drop', handleDrop);
+            box.addEventListener('click', handleBoxClick);
         });
 
         // Initialize the game when page loads
         initializeGame();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98a42ac2f66a98c4',t:'MTc1OTc0MzMwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98a44d9d70aa98c4',t:'MTc1OTc0NDczNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
-
