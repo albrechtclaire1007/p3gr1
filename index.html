@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="lb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sortéier d'Sätz: aus / an / zu</title>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+
+        @font-face {
+            font-family: 'Schoulschreft';
+            src: url('https://github.com/albrechtclaire1007/schoulschreft/raw/main/schoulschreft_bold%5B2%5D.TTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Schoulschreft', Arial, sans-serif;
+            background-color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            color: #003A70;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #5A8FD8;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .sentences-container {
+            background-color: #f8f9fa;
+            border: 2px solid #A7C6ED;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        .sentences-title {
+            font-size: 1.3rem;
+            color: #003A70;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .sentence-card {
+            background-color: white;
+            border: 2px solid #A7C6ED;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            color: #003A70;
+            user-select: none;
+        }
+
+        .sentence-card:hover {
+            background-color: #A7C6ED;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 58, 112, 0.2);
+        }
+
+        .sentence-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .boxes-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .drop-box {
+            background-color: #f8f9fa;
+            border: 3px dashed #A7C6ED;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .drop-box.drag-over {
+            border-color: #5A8FD8;
+            background-color: #A7C6ED;
+        }
+
+        .box-header {
+            font-size: 2rem;
+            color: #003A70;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .dropped-sentence {
+            background-color: white;
+            border: 2px solid #5A8FD8;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #003A70;
+        }
+
+        .correct {
+            background-color: #4CAF50 !important;
+            color: white !important;
+            border-color: #4CAF50 !important;
+            animation: correctPulse 1s ease-in-out;
+        }
+
+        .incorrect {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .game-complete {
+            text-align: center;
+            padding: 30px;
+            background-color: #A7C6ED;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .complete-title {
+            font-size: 2rem;
+            color: #003A70;
+            margin-bottom: 15px;
+        }
+
+        .restart-btn {
+            background-color: #5A8FD8;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-family: 'Schoulschreft', Arial, sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            background-color: #003A70;
+            transform: translateY(-2px);
+        }
+
+        .progress {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #5A8FD8;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .boxes-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Sortéier d'Sätz: aus / an / zu</h1>
+            <p class="subtitle">Setz all Saz an déi richteg Këscht!</p>
+        </div>
+
+        <div class="progress">
+            <span id="progress-text">0 / 25 Sätz richteg sortéiert</span>
+        </div>
+
+        <div class="game-area">
+            <div class="sentences-container">
+                <h3 class="sentences-title">Sätz fir ze sortéieren</h3>
+                <div id="sentences-list">
+                    <!-- Sentences will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="boxes-container">
+                <div class="drop-box" data-preposition="aus">
+                    <div class="box-header">aus</div>
+                    <div class="dropped-sentences" id="aus-box"></div>
+                </div>
+                <div class="drop-box" data-preposition="an">
+                    <div class="box-header">an</div>
+                    <div class="dropped-sentences" id="an-box"></div>
+                </div>
+                <div class="drop-box" data-preposition="zu">
+                    <div class="box-header">zu</div>
+                    <div class="dropped-sentences" id="zu-box"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-complete" id="game-complete">
+            <h2 class="complete-title">🎉 Perfekt! Du hues all Sätz richteg sortéiert! 🎉</h2>
+            <button class="restart-btn" onclick="restartGame()">🔁 Spill nach eng Kéier</button>
+        </div>
+    </div>
+
+    <script>
+        const sentences = [
+            { text: "Ech kommen aus Frankräich.", correct: "aus" },
+            { text: "Ech kommen aus Däitschland.", correct: "aus" },
+            { text: "Ech kommen aus der Belsch.", correct: "aus" },
+            { text: "Ech kommen aus Portugal.", correct: "aus" },
+            { text: "Ech kommen aus Spuenien.", correct: "aus" },
+            { text: "Ech kommen aus Italien.", correct: "aus" },
+            { text: "Ech kommen aus Lëtzebuerg.", correct: "aus" },
+            { text: "Ech kommen aus Éisträich.", correct: "aus" },
+            { text: "Ech wunnen an Frankräich.", correct: "an" },
+            { text: "Ech wunnen an Indien.", correct: "an" },
+            { text: "Ech wunnen an Sri Lanka.", correct: "an" },
+            { text: "Ech wunnen an Däitschland.", correct: "an" },
+            { text: "Ech wunnen an Éisträich.", correct: "an" },
+            { text: "Ech wunnen an Holland.", correct: "an" },
+            { text: "Ech wunnen an der Schwäiz.", correct: "an" },
+            { text: "Ech wunnen zu Lëtzebuerg.", correct: "zu" },
+            { text: "Ech wunnen zu Esch.", correct: "zu" },
+            { text: "Ech wunnen zu Diddeleng.", correct: "zu" },
+            { text: "Ech wunnen zu Mamer.", correct: "zu" },
+            { text: "Ech wunnen zu Beetebuerg.", correct: "zu" },
+            { text: "Ech wunnen zu Iechternach.", correct: "zu" },
+            { text: "Ech wunnen zu Woolz.", correct: "zu" },
+            { text: "Ech wunnen zu Käerjeng.", correct: "zu" },
+            { text: "Ech wunnen zu Clierf.", correct: "zu" }
+        ];
+
+        let correctCount = 0;
+        let draggedElement = null;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function initializeGame() {
+            const sentencesList = document.getElementById('sentences-list');
+            const shuffledSentences = shuffleArray(sentences);
+            
+            sentencesList.innerHTML = '';
+            correctCount = 0;
+            updateProgress();
+
+            shuffledSentences.forEach((sentence, index) => {
+                const sentenceCard = document.createElement('div');
+                sentenceCard.className = 'sentence-card';
+                sentenceCard.draggable = true;
+                sentenceCard.textContent = sentence.text;
+                sentenceCard.dataset.correct = sentence.correct;
+                sentenceCard.dataset.id = index;
+
+                sentenceCard.addEventListener('dragstart', handleDragStart);
+                sentenceCard.addEventListener('dragend', handleDragEnd);
+
+                sentencesList.appendChild(sentenceCard);
+            });
+
+            // Clear all drop boxes
+            document.getElementById('aus-box').innerHTML = '';
+            document.getElementById('an-box').innerHTML = '';
+            document.getElementById('zu-box').innerHTML = '';
+            document.getElementById('game-complete').style.display = 'none';
+        }
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+
+            if (!draggedElement) return;
+
+            const dropBox = e.currentTarget;
+            const preposition = dropBox.dataset.preposition;
+            const correctPreposition = draggedElement.dataset.correct;
+
+            if (preposition === correctPreposition) {
+                // Correct placement
+                const droppedSentence = document.createElement('div');
+                droppedSentence.className = 'dropped-sentence correct';
+                droppedSentence.textContent = draggedElement.textContent;
+                
+                const targetBox = document.getElementById(preposition + '-box');
+                targetBox.appendChild(droppedSentence);
+                
+                draggedElement.remove();
+                correctCount++;
+                updateProgress();
+
+                // Remove correct class after animation
+                setTimeout(() => {
+                    droppedSentence.classList.remove('correct');
+                }, 1000);
+
+                // Check if game is complete
+                if (correctCount === sentences.length) {
+                    setTimeout(() => {
+                        document.getElementById('game-complete').style.display = 'block';
+                    }, 1200);
+                }
+            } else {
+                // Incorrect placement
+                draggedElement.classList.add('incorrect');
+                setTimeout(() => {
+                    draggedElement.classList.remove('incorrect');
+                }, 500);
+            }
+
+            draggedElement = null;
+        }
+
+        function updateProgress() {
+            document.getElementById('progress-text').textContent = 
+                `${correctCount} / ${sentences.length} Sätz richteg sortéiert`;
+        }
+
+        function restartGame() {
+            initializeGame();
+        }
+
+        // Add event listeners to drop boxes
+        document.querySelectorAll('.drop-box').forEach(box => {
+            box.addEventListener('dragover', handleDragOver);
+            box.addEventListener('dragleave', handleDragLeave);
+            box.addEventListener('drop', handleDrop);
+        });
+
+        // Initialize the game when page loads
+        initializeGame();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98a4208a73de98c4',t:'MTc1OTc0Mjg5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
